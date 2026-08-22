@@ -1,0 +1,33 @@
+# Contributing
+
+Open Domain Radar accepts narrowly scoped, reviewable changes that preserve its passive-collection and evidence-boundary guarantees.
+
+## Before changing behavior
+
+Open a design issue for schema changes, new providers, new automatic publication rules, authentication changes or anything that contacts an observed host. Describe the intelligence requirement, operator decision, evidence semantics, rate/retention cost and false-positive risk.
+
+## Local checks
+
+```powershell
+python -m pip install -e ".[dev]"
+python -m playwright install chromium
+python -m ruff check .
+python -m ruff format --check .
+python -m mypy
+python -m pytest --cov=open_domain_radar --cov-report=term-missing
+```
+
+Every detection change needs positive, ambiguous and benign fixtures using reserved domains. Every provider change needs mocked HTTP/WebSocket tests for missing credentials, rate limiting, invalid content, oversized responses and redirects. Never use real suspicious infrastructure in tests.
+
+Schema changes require a new immutable entry in `src/open_domain_radar/migrations.py`, an upgrade fixture from the previous release, a fresh-install test and a backup/restore rehearsal. Never edit an already released migration or implement downgrade SQL. A newer database must continue to fail closed on an older application.
+
+## Safety rules
+
+- Do not commit API keys, cookies, database files, raw provider responses, operational screenshots or analyst notes. Sanitized documentation images must use only reserved domains and blank credentials.
+- Do not add active crawling, browser automation or URL submission under the label “passive”.
+- Do not turn a lexical score or provider verdict into an automatic statement of maliciousness.
+- Keep candidate indicators defanged and non-clickable in public output.
+- Preserve append-only review history; corrections are compensating events.
+- Reject ambiguous target identity rather than choosing the highest score silently.
+
+Contributions are licensed under Apache-2.0. Contributors must have the right to submit all included code and fixtures.
