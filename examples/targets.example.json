@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "targets": [
+    {
+      "name": "Northwind Credit Union",
+      "aliases": ["northwind", "northwind credit"],
+      "keywords": ["customer portal", "online payment"],
+      "officialDomains": ["northwind.example"],
+      "country": "ZZ",
+      "minimumScore": 70,
+      "enabled": false
+    }
+  ]
+}

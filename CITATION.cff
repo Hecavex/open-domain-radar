@@ -1,0 +1,11 @@
+cff-version: 1.2.0
+message: "If you use Open Domain Radar in research, cite the software release and the exact ruleset/target-registry versions used."
+title: "Open Domain Radar"
+type: software
+version: 0.1.0
+date-released: 2026-08-23
+url: "https://github.com/Hecavex/open-domain-radar"
+license: Apache-2.0
+authors:
+  - family-names: "Lis"
+    given-names: "Deividas"

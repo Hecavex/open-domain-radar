@@ -1,0 +1,9 @@
+Open Domain Radar
+Copyright 2026 Deividas Lis and Open Domain Radar contributors
+
+Portions of the normalization, Certificate Transparency parsing, conservative
+target-matching, passive URLScan safety and append-only review design are
+derived from HECAVEX Radar, licensed under the Apache License 2.0.
+
+This product is not affiliated with or endorsed by Certificate Transparency
+log operators, URLScan, VirusTotal, Google, or any monitored organization.

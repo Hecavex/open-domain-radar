@@ -1,0 +1,87 @@
+[build-system]
+requires = ["setuptools>=75,<86"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "open-domain-radar"
+version = "0.1.0"
+description = "Self-hosted, explainable discovery and review of potential domain impersonation."
+readme = "README.md"
+requires-python = ">=3.12"
+license = "Apache-2.0"
+authors = [{ name = "Deividas Lis" }]
+keywords = ["certificate-transparency", "cti", "domain-monitoring", "phishing", "threat-intelligence"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Environment :: Web Environment",
+  "Framework :: FastAPI",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Security",
+]
+dependencies = [
+  "argon2-cffi>=23.1,<26",
+  "cryptography>=44,<47",
+  "fastapi>=0.115,<1",
+  "httpx>=0.27,<1",
+  "jinja2>=3.1,<4",
+  "pydantic>=2.10,<3",
+  "sqlalchemy>=2.0,<3",
+  "uvicorn[standard]>=0.34,<1",
+  "websockets>=15,<18",
+]
+
+[project.urls]
+Homepage = "https://github.com/Hecavex/open-domain-radar"
+Repository = "https://github.com/Hecavex/open-domain-radar"
+Issues = "https://github.com/Hecavex/open-domain-radar/issues"
+Documentation = "https://github.com/Hecavex/open-domain-radar/tree/main/docs"
+
+[project.optional-dependencies]
+dev = [
+  "build>=1.2,<2",
+  "mypy>=1.15,<3",
+  "playwright>=1.58,<2",
+  "pytest>=8.3,<10",
+  "pytest-cov>=6,<8",
+  "ruff>=0.11,<1",
+]
+
+[project.scripts]
+open-domain-radar = "open_domain_radar.cli:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+include-package-data = true
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+open_domain_radar = ["py.typed", "templates/*.html", "static/*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra --strict-markers"
+
+[tool.ruff]
+target-version = "py312"
+line-length = 120
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "S"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101", "S105", "S106"]
+"scripts/test_responsive.py" = ["S101"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+warn_unreachable = true
+pretty = true
+packages = ["open_domain_radar"]
+
+[tool.coverage.report]
+fail_under = 80
+show_missing = true

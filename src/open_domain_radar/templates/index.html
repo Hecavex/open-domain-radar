@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="en" data-page="public">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="dark">
+    <meta name="theme-color" content="#080d12">
+    <meta name="description" content="A read-only catalogue of potential impersonation and phishing domains.">
+    <title>{{ product_name | default('Open Domain Radar', true) }}</title>
+    <link rel="icon" href="/static/mark.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="/static/styles.css">
+    <script src="/static/public.js" defer></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main-content">Skip to main content</a>
+
+    <header class="site-header">
+      <div class="shell header-row">
+        <a class="brand" href="/" aria-label="{{ product_name | default('Open Domain Radar', true) }} home">
+          <img src="/static/mark.svg" width="34" height="34" alt="">
+          <span>
+            <strong>{{ product_name | default('Open Domain Radar', true) }}</strong>
+            <small>Public domain signals</small>
+          </span>
+        </a>
+        <nav class="global-nav" aria-label="Primary navigation">
+          <a class="is-active" href="#signals">Signals</a>
+          <a href="#method">Method</a>
+          <a class="button button--quiet button--small" href="/admin">Operator console</a>
+        </nav>
+      </div>
+    </header>
+
+    <main id="main-content">
+      <section class="hero shell" aria-labelledby="page-title">
+        <div class="hero-copy">
+          <p class="eyebrow"><span class="pulse" aria-hidden="true"></span> Open signal catalogue</p>
+          <h1 id="page-title">Potential impersonation domains, surfaced for review.</h1>
+          <p class="lede">Recently observed domains that resemble configured organisations, products, or services. Indicators are safely defanged and never link to suspected infrastructure.</p>
+        </div>
+        <aside class="disclosure" aria-labelledby="disclosure-title">
+          <p class="kicker" id="disclosure-title">Important context</p>
+          <p>A listing is a lead, not proof of malicious intent. Similarity, certificate issuance, or enrichment evidence can produce false positives. Verify independently before taking action.</p>
+          <div class="health-line">
+            <span class="health-dot health-dot--unknown" id="health-dot" aria-hidden="true"></span>
+            <span id="service-health" role="status">Checking collection health…</span>
+          </div>
+        </aside>
+      </section>
+
+      <section class="metrics shell" aria-label="Signal summary">
+        <article class="metric">
+          <span>Public signals</span>
+          <strong id="metric-total">—</strong>
+          <small>Current public catalogue</small>
+        </article>
+        <article class="metric">
+          <span>Observed in 24 hours</span>
+          <strong id="metric-new">—</strong>
+          <small>New or seen again</small>
+        </article>
+        <article class="metric">
+          <span>Watch targets</span>
+          <strong id="metric-targets">—</strong>
+          <small>Configured matching scopes</small>
+        </article>
+        <article class="metric">
+          <span>Last collection</span>
+          <strong class="metric-time" id="metric-updated">—</strong>
+          <small id="metric-source-note">Waiting for health data</small>
+        </article>
+      </section>
+
+      <section class="catalogue shell" id="signals" aria-labelledby="signals-title">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Signal catalogue</p>
+            <h2 id="signals-title" tabindex="-1">Recently observed</h2>
+          </div>
+          <p>Search and filter the public review set. Selecting a row opens its evidence summary without navigating to the domain.</p>
+        </div>
+
+        <form class="filters" id="signal-filters" role="search">
+          <div class="field field--search">
+            <label for="filter-query">Search indicators or targets</label>
+            <input id="filter-query" name="query" type="search" placeholder="Search defanged domain…" autocomplete="off">
+          </div>
+          <div class="field">
+            <label for="filter-status">Status</label>
+            <select id="filter-status" name="status">
+              <option value="">All statuses</option>
+              <option value="potential">Potential</option>
+              <option value="published">Analyst-confirmed</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="filter-source">Source</label>
+            <select id="filter-source" name="source">
+              <option value="">All sources</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="filter-target">Watch target</label>
+            <select id="filter-target" name="target">
+              <option value="">All targets</option>
+            </select>
+          </div>
+          <button class="button button--primary filter-submit" type="submit">Apply filters</button>
+          <button class="button button--quiet filter-reset" id="filter-reset" type="reset">Reset</button>
+        </form>
+
+        <div class="catalogue-meta">
+          <p id="result-summary" aria-live="polite">Loading signals…</p>
+          <label class="compact-field" for="page-size">
+            <span>Rows</span>
+            <select id="page-size" name="page_size">
+              <option value="10">10</option>
+              <option value="25" selected>25</option>
+              <option value="50">50</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="state-panel" id="signal-state" role="status" aria-live="polite">
+          <span class="spinner" aria-hidden="true"></span>
+          <div><strong>Loading signals</strong><p>Requesting the current public catalogue.</p></div>
+        </div>
+
+        <div class="table-wrap" id="signal-table-wrap" hidden>
+          <table class="data-table signal-table">
+            <caption class="sr-only">Potential impersonation domain signals</caption>
+            <thead>
+              <tr>
+                <th scope="col">Confidence</th>
+                <th scope="col">Defanged indicator</th>
+                <th scope="col">Possible target</th>
+                <th scope="col">Source</th>
+                <th scope="col">First seen</th>
+                <th scope="col">Last seen</th>
+                <th scope="col">Status</th>
+                <th scope="col"><span class="sr-only">Details</span></th>
+              </tr>
+            </thead>
+            <tbody id="signal-rows"></tbody>
+          </table>
+        </div>
+
+        <nav class="pagination" id="pagination" aria-label="Signal catalogue pages" hidden>
+          <button class="button button--quiet button--small" id="page-previous" type="button">Previous</button>
+          <span id="page-label">Page 1 of 1</span>
+          <button class="button button--quiet button--small" id="page-next" type="button">Next</button>
+        </nav>
+      </section>
+
+      <section class="method shell" id="method" aria-labelledby="method-title">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">How to read this data</p>
+            <h2 id="method-title">Signals pass through a bounded review pipeline.</h2>
+          </div>
+          <p>Deployments can run from certificate transparency alone. Optional providers enrich existing candidates; a missing key never suppresses a certificate-derived lead.</p>
+        </div>
+        <ol class="method-grid">
+          <li><span>01</span><strong>Collect</strong><p>Observe certificate names and enabled feeds. Store normalized domains with provenance and timestamps.</p></li>
+          <li><span>02</span><strong>Match</strong><p>Compare against explicit watch targets using explainable lexical and structural rules.</p></li>
+          <li><span>03</span><strong>Enrich</strong><p>Queue optional pivots. Providers without usable credentials are marked skipped, not failed.</p></li>
+          <li><span>04</span><strong>Review</strong><p>Analysts publish, close, or mark false positives. Every disposition remains auditable and reversible.</p></li>
+        </ol>
+        <div class="method-notes">
+          <article><p class="kicker">Confidence is not verdict</p><p>The score ranks evidence strength inside this deployment. It does not establish ownership, intent, or harm.</p></article>
+          <article><p class="kicker">Safe presentation</p><p>Potentially dangerous indicators are defanged, rendered as text, and never made directly clickable.</p></article>
+          <article><p class="kicker">Coverage boundary</p><p>Collection is best effort. Absence from the catalogue does not mean a domain is safe or unobserved elsewhere.</p></article>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="shell footer-row">
+        <p>{{ product_name | default('Open Domain Radar', true) }} · Read-only public intelligence</p>
+        <p>Report corrections to the deployment operator. Do not visit listed indicators.</p>
+      </div>
+    </footer>
+
+    <dialog class="drawer" id="signal-dialog" aria-labelledby="dialog-indicator">
+      <div class="drawer-head">
+        <div>
+          <p class="eyebrow">Signal detail</p>
+          <h2 id="dialog-indicator">Indicator</h2>
+        </div>
+        <button class="icon-button" id="dialog-close" type="button" aria-label="Close signal details">×</button>
+      </div>
+      <div class="drawer-body">
+        <div class="warning-strip">Potentially unsafe indicator. It is shown defanged and cannot be opened from this interface.</div>
+        <dl class="detail-grid" id="signal-details"></dl>
+        <section class="detail-section" aria-labelledby="evidence-title">
+          <p class="kicker" id="evidence-title">Why it matched</p>
+          <ul class="evidence-list" id="signal-evidence"></ul>
+        </section>
+        <section class="detail-section" aria-labelledby="provenance-title">
+          <p class="kicker" id="provenance-title">Provenance</p>
+          <p id="signal-provenance">No additional provenance published.</p>
+        </section>
+      </div>
+    </dialog>
+  </body>
+</html>
