@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="en" data-page="admin">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="dark">
+    <meta name="theme-color" content="#080d12">
+    <meta name="robots" content="noindex, nofollow">
+    <title>Operator console · {{ product_name | default('Open Domain Radar', true) }}</title>
+    <link rel="icon" href="/static/mark.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="/static/styles.css">
+    <script src="/static/admin.js" defer></script>
+  </head>
+  <body class="admin-page">
+    <a class="skip-link" href="#main-content">Skip to main content</a>
+
+    <header class="site-header">
+      <div class="shell header-row">
+        <a class="brand" href="/" aria-label="Return to public dashboard">
+          <img src="/static/mark.svg" width="34" height="34" alt="">
+          <span>
+            <strong>{{ product_name | default('Open Domain Radar', true) }}</strong>
+            <small>Operator console</small>
+          </span>
+        </a>
+        <div class="global-nav">
+          <span class="environment-badge">Private workspace</span>
+          <a class="button button--quiet button--small" href="/">Public dashboard</a>
+          <button class="button button--quiet button--small" id="logout-button" type="button" hidden>Sign out</button>
+        </div>
+      </div>
+    </header>
+
+    <noscript><div class="noscript shell">JavaScript is required for the protected operator console.</div></noscript>
+
+    <main id="main-content">
+      <section class="auth-shell shell" id="auth-loading" aria-live="polite">
+        <div class="state-panel state-panel--standalone">
+          <span class="spinner" aria-hidden="true"></span>
+          <div><strong>Opening operator console</strong><p>Checking local setup and session state.</p></div>
+        </div>
+      </section>
+
+      <section class="auth-shell shell" id="setup-view" hidden aria-labelledby="setup-title">
+        <div class="auth-card auth-card--compact auth-card--bootstrap">
+          <div class="auth-intro">
+            <p class="eyebrow">Operator bootstrap required</p>
+            <h1 id="setup-title">Create the operator from a trusted terminal.</h1>
+            <p>Browser-based account creation is disabled. Run this command on the host before exposing the console:</p>
+            <pre class="command-block" tabindex="0"><code>open-domain-radar create-admin --username operator</code></pre>
+            <p>The command prompts for a password without storing it in shell history. Return here after it completes.</p>
+            <button class="button button--primary" id="setup-recheck" type="button">Check setup again</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="auth-shell shell" id="login-view" hidden aria-labelledby="login-title">
+        <div class="auth-card auth-card--compact">
+          <div class="auth-intro">
+            <p class="eyebrow">Restricted access</p>
+            <h1 id="login-title">Operator sign in</h1>
+            <p>Review candidates and manage collection for this deployment.</p>
+          </div>
+          <form class="auth-form" id="login-form">
+            <div class="field">
+              <label for="login-username">Username</label>
+              <input id="login-username" name="username" autocomplete="username" required>
+            </div>
+            <div class="field">
+              <label for="login-password">Password</label>
+              <input id="login-password" name="password" type="password" autocomplete="current-password" required>
+            </div>
+            <p class="form-message" id="login-message" role="alert"></p>
+            <button class="button button--primary" type="submit">Sign in</button>
+          </form>
+        </div>
+      </section>
+
+      <div class="admin-layout shell" id="workspace" hidden>
+        <aside class="admin-sidebar">
+          <div class="operator-card">
+            <span class="avatar" aria-hidden="true">OP</span>
+            <div><strong id="operator-name">Operator</strong><small>Local administrator</small></div>
+          </div>
+          <nav class="admin-nav" aria-label="Operator console">
+            <button class="is-active" type="button" data-section="overview" aria-controls="section-overview" aria-current="page"><span>01</span>Overview</button>
+            <button type="button" data-section="targets" aria-controls="section-targets"><span>02</span>Watch targets</button>
+            <button type="button" data-section="integrations" aria-controls="section-integrations"><span>03</span>Integrations</button>
+            <button type="button" data-section="review" aria-controls="section-review"><span>04</span>Review queue <b id="review-count">—</b></button>
+            <button type="button" data-section="pivots" aria-controls="section-pivots"><span>05</span>Pivoting</button>
+            <button type="button" data-section="settings" aria-controls="section-settings"><span>06</span>Settings</button>
+          </nav>
+        </aside>
+
+        <div class="admin-content">
+          <div class="admin-alert" id="admin-alert" role="status" aria-live="polite" hidden></div>
+
+          <section class="admin-section is-active" id="section-overview" aria-labelledby="overview-title">
+            <div class="admin-heading">
+              <div><p class="eyebrow">Operations</p><h1 id="overview-title">Collection overview</h1></div>
+              <button class="button button--quiet button--small refresh-button" type="button">Refresh data</button>
+            </div>
+            <div class="metrics metrics--admin">
+              <article class="metric"><span>Open candidates</span><strong id="admin-candidates">—</strong><small>Awaiting disposition</small></article>
+              <article class="metric"><span>Analyst-confirmed</span><strong id="admin-published">—</strong><small>Potential signals are already public</small></article>
+              <article class="metric"><span>Queued pivots</span><strong id="admin-pivots">—</strong><small>Pending enrichment</small></article>
+              <article class="metric"><span>Enabled targets</span><strong id="admin-targets">—</strong><small>Active matching scopes</small></article>
+            </div>
+            <div class="overview-grid">
+              <article class="panel">
+                <div class="panel-head"><div><p class="kicker">Collection health</p><h2>Pipeline status</h2></div><span class="status-badge status-unknown" id="admin-health-badge">Checking</span></div>
+                <dl class="status-list" id="admin-health-list">
+                  <div><dt>Last successful collection</dt><dd>—</dd></div>
+                  <div><dt>Database</dt><dd>—</dd></div>
+                  <div><dt>Scheduler</dt><dd>—</dd></div>
+                </dl>
+              </article>
+              <article class="panel">
+                <div class="panel-head"><div><p class="kicker">Enrichment posture</p><h2>Provider readiness</h2></div></div>
+                <div class="mini-provider-list" id="overview-providers"><p class="muted">Loading providers…</p></div>
+              </article>
+              <article class="panel panel--wide">
+                <div class="panel-head"><div><p class="kicker">Recent activity</p><h2>Pipeline runs</h2></div><button class="text-button" type="button" data-go-section="pivots">View all runs →</button></div>
+                <div class="table-wrap" tabindex="0" aria-label="Recent pipeline runs"><table class="data-table compact-table"><caption class="sr-only">Recent pipeline runs</caption><thead><tr><th>Run</th><th>Type</th><th>Status</th><th>Started</th><th>Processed</th></tr></thead><tbody id="overview-runs"></tbody></table></div>
+              </article>
+            </div>
+          </section>
+
+          <section class="admin-section" id="section-targets" aria-labelledby="targets-title" hidden>
+            <div class="admin-heading">
+              <div><p class="eyebrow">Matching scope</p><h1 id="targets-title">Watch targets</h1><p>Define legitimate identities and domains before collecting candidates. Specific records reduce false positives.</p></div>
+              <button class="button button--primary" id="new-target-button" type="button">Add watch target</button>
+            </div>
+            <div class="guidance-strip"><strong>Precision starts here.</strong> Record official domains as allowlisted references, keep aliases distinctive, and avoid generic one-word keywords.</div>
+            <div class="table-wrap panel-table" tabindex="0" aria-label="Watch targets"><table class="data-table"><caption class="sr-only">Configured watch targets</caption><thead><tr><th>Name</th><th>Official domains</th><th>Match terms</th><th>Status</th><th>Updated</th><th><span class="sr-only">Actions</span></th></tr></thead><tbody id="target-rows"></tbody></table></div>
+            <div class="state-panel" id="target-empty" hidden><div><strong>No watch targets</strong><p>Add a target to begin matching certificate names.</p></div></div>
+          </section>
+
+          <section class="admin-section" id="section-integrations" aria-labelledby="integrations-title" hidden>
+            <div class="admin-heading">
+              <div><p class="eyebrow">Optional enrichment</p><h1 id="integrations-title">Integrations</h1><p>Certificate collection works without API keys. Enrichment providers extend evidence when configured and are otherwise skipped.</p></div>
+              <button class="button button--quiet button--small refresh-button" type="button">Refresh status</button>
+            </div>
+            <div class="provider-legend" aria-label="Provider state legend">
+              <span><i class="status-dot status-ready"></i>Ready</span><span><i class="status-dot status-needs-key"></i>Needs key</span><span><i class="status-dot status-disabled"></i>Disabled</span><span><i class="status-dot status-skipped"></i>Skipped</span><span><i class="status-dot status-error"></i>Error</span>
+            </div>
+            <div class="provider-grid" id="provider-grid"></div>
+          </section>
+
+          <section class="admin-section" id="section-review" aria-labelledby="review-title" hidden>
+            <div class="admin-heading">
+              <div><p class="eyebrow">Analyst workflow</p><h1 id="review-title" tabindex="-1">Candidate review</h1><p>Inspect source observations, record false positives, and distinguish analyst-confirmed signals from automated potential leads.</p></div>
+              <button class="button button--quiet button--small refresh-button" type="button">Refresh queue</button>
+            </div>
+            <form class="filters filters--admin" id="candidate-filters">
+              <div class="field field--search"><label for="candidate-query">Search candidates</label><input id="candidate-query" name="query" type="search" placeholder="Domain or watch target…"></div>
+              <div class="field"><label for="candidate-status">Review state</label><select id="candidate-status" name="status"><option value="">Open candidates</option><option value="false_positive">False positive</option><option value="published">Analyst-confirmed</option><option value="closed">Closed</option></select></div>
+              <button class="button button--primary" type="submit">Apply</button>
+            </form>
+            <div class="table-wrap panel-table" tabindex="0" aria-label="Candidate review queue"><table class="data-table"><caption class="sr-only">Candidate review queue</caption><thead><tr><th>Score</th><th>Defanged indicator</th><th>Target</th><th>Evidence</th><th>First seen</th><th>Status</th><th><span class="sr-only">Review</span></th></tr></thead><tbody id="candidate-rows"></tbody></table></div>
+            <div class="state-panel" id="candidate-empty" hidden><div><strong>Queue is clear</strong><p>No candidates match the current filters.</p></div></div>
+            <nav class="pagination pagination--admin" id="candidate-pagination" aria-label="Candidate pages" hidden>
+              <button class="button button--quiet button--small" id="candidate-page-previous" type="button">Previous</button>
+              <span id="candidate-page-label" aria-live="polite">Page 1 of 1</span>
+              <button class="button button--quiet button--small" id="candidate-page-next" type="button">Next</button>
+            </nav>
+          </section>
+
+          <section class="admin-section" id="section-pivots" aria-labelledby="pivots-title" hidden>
+            <div class="admin-heading">
+              <div><p class="eyebrow">Evidence expansion</p><h1 id="pivots-title">Pivot queue and runs</h1><p>Queue bounded enrichment for a domain that matches exactly one enabled watch target. Disabled or unconfigured providers are skipped.</p></div>
+              <button class="button button--quiet button--small refresh-button" type="button">Refresh runs</button>
+            </div>
+            <form class="pivot-form panel" id="pivot-form">
+              <div class="field"><label for="pivot-domain">Domain to investigate</label><input id="pivot-domain" name="domain" inputmode="url" placeholder="example.invalid" required></div>
+              <fieldset aria-describedby="pivot-provider-help"><legend>Enabled pivot types</legend><label class="check-control"><input type="checkbox" name="providers" value="urlscan" checked><span>URLScan</span></label><label class="check-control"><input type="checkbox" name="providers" value="virustotal" checked><span>VirusTotal</span></label><small id="pivot-provider-help">Select at least one provider. Unavailable providers are skipped without blocking others.</small></fieldset>
+              <div class="field"><label for="pivot-note">Analyst note <span>Optional</span></label><input id="pivot-note" name="note" maxlength="300" placeholder="Reason for this pivot"></div>
+              <button class="button button--primary" type="submit">Queue pivot</button>
+            </form>
+            <div class="split-heading"><h2>Queue</h2><span id="pivot-queue-summary">—</span></div>
+            <div class="table-wrap panel-table" tabindex="0" aria-label="Pivot queue"><table class="data-table"><caption class="sr-only">Passive enrichment pivot queue</caption><thead><tr><th>Domain</th><th>Providers</th><th>State</th><th>Queued</th><th>Requested by</th></tr></thead><tbody id="pivot-rows"></tbody></table></div>
+            <div class="split-heading"><h2>Recent runs</h2><span>Collection and enrichment</span></div>
+            <div class="table-wrap panel-table" tabindex="0" aria-label="Collection and enrichment runs"><table class="data-table"><caption class="sr-only">Collection and enrichment runs</caption><thead><tr><th>Run</th><th>Type</th><th>Status</th><th>Started</th><th>Finished</th><th>Processed</th><th>Notes</th></tr></thead><tbody id="run-rows"></tbody></table></div>
+          </section>
+
+          <section class="admin-section" id="section-settings" aria-labelledby="settings-title" hidden>
+            <div class="admin-heading"><div><p class="eyebrow">Deployment</p><h1 id="settings-title">Settings and safeguards</h1><p>Local presentation preferences and the operational boundaries of this installation.</p></div></div>
+            <div class="settings-grid">
+              <form class="panel settings-form" id="preference-form">
+                <div class="panel-head"><div><p class="kicker">This browser</p><h2>Console preferences</h2></div></div>
+                <div class="field"><label for="preference-page-size">Default table rows</label><select id="preference-page-size"><option value="10">10</option><option value="25">25</option><option value="50">50</option></select></div>
+                <div class="field"><label for="preference-time">Timestamp display</label><select id="preference-time"><option value="local">Local time</option><option value="utc">UTC</option></select></div>
+                <button class="button button--primary" type="submit">Save preferences</button>
+              </form>
+              <article class="panel">
+                <div class="panel-head"><div><p class="kicker">Data store</p><h2>Persistence</h2></div><span class="status-badge status-unknown" id="database-status">Checking</span></div>
+                <dl class="status-list"><div><dt>Candidate history</dt><dd>Retained for audit and restore</dd></div><div><dt>Provider secrets</dt><dd>Write-only in this interface</dd></div><div><dt>Public access</dt><dd>Anonymous, read-only endpoints</dd></div></dl>
+              </article>
+              <article class="panel panel--wide">
+                <div class="panel-head"><div><p class="kicker">False-positive policy</p><h2>Suppressions</h2></div><span class="muted">Disabled rather than deleted</span></div>
+                <p class="muted">Exact, target-scoped rules are safest. Suffix, glob, or global rules can hide unrelated candidates and should be reviewed carefully.</p>
+                <form class="filters filters--admin" id="suppression-form">
+                  <div class="field field--search"><label for="suppression-pattern">Domain or pattern</label><input id="suppression-pattern" name="pattern" required maxlength="253" placeholder="known-safe.example"></div>
+                  <div class="field"><label for="suppression-match-type">Match</label><select id="suppression-match-type" name="match_type"><option value="exact">Exact</option><option value="suffix">Domain and subdomains</option><option value="glob">Glob</option></select></div>
+                  <div class="field"><label for="suppression-target">Scope</label><select id="suppression-target" name="target_id"><option value="">Global</option></select></div>
+                  <div class="field field--search"><label for="suppression-reason">Reason</label><input id="suppression-reason" name="reason" required minlength="3" maxlength="500" placeholder="Why this match is legitimate"></div>
+                  <button class="button button--primary" type="submit">Add suppression</button>
+                </form>
+                <p class="form-message" id="suppression-message" role="alert"></p>
+                <div class="table-wrap" tabindex="0" aria-label="False-positive suppressions"><table class="data-table compact-table"><caption class="sr-only">False-positive suppression rules</caption><thead><tr><th>Pattern</th><th>Match</th><th>Scope</th><th>Reason</th><th>Status</th><th><span class="sr-only">Actions</span></th></tr></thead><tbody id="suppression-rows"></tbody></table></div>
+              </article>
+              <article class="panel panel--wide danger-panel">
+                <div><p class="kicker">Operational boundary</p><h2>Safe research remains the operator’s responsibility.</h2></div>
+                <p>Use passive sources where possible. Do not submit credentials, personal data, or sensitive client indicators to third-party providers without authorisation. Treat automated scores as triage, not attribution.</p>
+              </article>
+            </div>
+          </section>
+        </div>
+      </div>
+    </main>
+
+    <dialog class="modal" id="target-dialog" aria-labelledby="target-dialog-title">
+      <form class="modal-card" id="target-form">
+        <div class="modal-head"><div><p class="eyebrow">Matching scope</p><h2 id="target-dialog-title">Add watch target</h2></div><button class="icon-button" type="button" data-close-dialog="target-dialog" aria-label="Close target editor">×</button></div>
+        <input id="target-id" name="id" type="hidden">
+        <div class="modal-body">
+          <div class="field"><label for="target-name">Display name</label><input id="target-name" name="name" required maxlength="120" placeholder="Organisation or product"></div>
+          <div class="field"><label for="target-domains">Official domains <span>One per line</span></label><textarea id="target-domains" name="official_domains" rows="4" required placeholder="example.com&#10;example.org"></textarea><small>These establish legitimate ownership and suppress matching beneath official domains.</small></div>
+          <div class="field"><label for="target-aliases">Distinctive aliases <span>One per line</span></label><textarea id="target-aliases" name="aliases" rows="3" placeholder="Product name&#10;Organisation abbreviation"></textarea><small>Avoid generic words that occur across unrelated certificates.</small></div>
+          <div class="field"><label for="target-keywords">Context keywords <span>One per line, optional</span></label><textarea id="target-keywords" name="keywords" rows="3" placeholder="customer portal&#10;online payment"></textarea><small>Keywords add context to a close alias match; they never match on their own.</small></div>
+          <div class="form-grid-two">
+            <div class="field"><label for="target-country">Country tag <span>Optional metadata</span></label><input id="target-country" name="country" maxlength="2" pattern="[A-Za-z]{2}" placeholder="ISO code, e.g. LT"><small>This label provides analyst context only; it does not change matching.</small></div>
+            <div class="field"><label for="target-minimum-score">Minimum match score</label><input id="target-minimum-score" name="minimum_score" type="number" min="55" max="100" value="65" required><small>Higher values favour precision.</small></div>
+          </div>
+          <label class="switch-control"><input id="target-enabled" name="enabled" type="checkbox" checked><span>Enable certificate matching for this target</span></label>
+          <p class="form-message" id="target-message" role="alert"></p>
+        </div>
+        <div class="modal-actions"><button class="button button--quiet" type="button" data-close-dialog="target-dialog">Cancel</button><button class="button button--primary" type="submit">Save target</button></div>
+      </form>
+    </dialog>
+
+    <dialog class="drawer" id="review-dialog" aria-labelledby="review-indicator">
+      <div class="drawer-head"><div><p class="eyebrow">Candidate review</p><h2 id="review-indicator">Indicator</h2></div><button class="icon-button" type="button" data-close-dialog="review-dialog" aria-label="Close candidate review">×</button></div>
+      <div class="drawer-body">
+        <div class="warning-strip">This domain may be unsafe. It remains defanged and non-clickable.</div>
+        <dl class="detail-grid" id="review-details"></dl>
+        <section class="detail-section"><p class="kicker">Evidence</p><ul class="evidence-list" id="review-evidence"></ul></section>
+        <section class="detail-section"><label for="review-note" class="kicker">Analyst note</label><textarea id="review-note" rows="4" maxlength="500" placeholder="Record the reasoning for this disposition"></textarea></section>
+        <section class="detail-section"><p class="kicker">Review history</p><ul class="evidence-list" id="review-history"></ul></section>
+        <p class="review-transition-help" id="review-transition-help"></p>
+        <div class="review-actions">
+          <button class="button button--danger" type="button" data-review-action="false_positive">Mark false positive</button>
+          <button class="button button--quiet" type="button" data-review-action="restore">Restore to review</button>
+          <button class="button button--quiet" type="button" data-review-action="close">Close</button>
+          <button class="button button--primary" type="button" data-review-action="publish">Mark analyst-confirmed</button>
+        </div>
+        <p class="form-message" id="review-message" role="alert"></p>
+      </div>
+    </dialog>
+  </body>
+</html>
