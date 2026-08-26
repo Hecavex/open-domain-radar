@@ -58,7 +58,7 @@ server {
 
 The application does not trust `X-Forwarded-For` or `X-Forwarded-Proto`; rate limiting and client attribution stay at the proxy. Keep the application port bound to loopback and do not expose it alongside the HTTPS endpoint.
 
-The release suite rehearses this topology locally with an ephemeral self-signed certificate and a loopback TLS-terminating proxy. That verifies application behavior through the boundary, including HSTS and Secure/HttpOnly session cookies. It does not validate a production certificate, firewall, VPN, DNS or a hosting provider's proxy configuration.
+Before a release is deployed, rehearse this topology with an ephemeral self-signed certificate and a loopback TLS-terminating proxy. Confirm application behavior through the boundary, including HSTS and Secure/HttpOnly session cookies. This does not validate a production certificate, firewall, VPN, DNS or a hosting provider's proxy configuration.
 
 ## Secrets
 

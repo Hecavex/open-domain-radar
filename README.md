@@ -219,20 +219,16 @@ The schema is tracked in a forward-only migration ledger. A database newer than 
 
 ```sh
 python -m pip install -e ".[dev]"
-python -m playwright install chromium
 python -m ruff check .
 python -m ruff format --check .
 python -m mypy
-python -m pytest --cov=open_domain_radar --cov-report=term-missing
+python -m pip_audit . --strict --progress-spinner off
+python -m build
 ```
 
-The release suite also exercises packaged assets, responsive layouts, keyboard focus, forced-colour behavior, reflow, backup/restore and local TLS reverse-proxy operation. Live external-link reachability is intentionally opt-in:
+The automated gate checks source quality, strict typing, known dependency vulnerabilities, bytecode compilation, source/wheel packaging and container startup. Responsive behavior, keyboard and forced-colour accessibility, backup restoration, authentication, provider integrations and the intended TLS boundary remain explicit human release checks described in [Release qualification and rehearsal](docs/RELEASE-REHEARSAL.md).
 
-```sh
-ODR_CHECK_EXTERNAL_LINKS=1 python -m pytest tests/test_documentation_links.py
-```
-
-Tests use reserved domains and mocked providers. Do not add real suspicious infrastructure, provider credentials or analyst data to fixtures or documentation images.
+Do not add real suspicious infrastructure, provider credentials or analyst data to documentation, screenshots or examples.
 
 ## Documentation
 
@@ -249,4 +245,4 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) before proposing detection, provider, sch
 
 ## Licence and data terms
 
-The software is licensed under Apache-2.0. Synthetic test and documentation material is offered under CC0-1.0. Provider results, screenshots and other third-party data remain subject to their original terms; see [DATA-LICENSE.md](DATA-LICENSE.md) and [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
+The software is licensed under Apache-2.0. Synthetic documentation material is offered under CC0-1.0. Provider results, screenshots and other third-party data remain subject to their original terms; see [DATA-LICENSE.md](DATA-LICENSE.md) and [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).

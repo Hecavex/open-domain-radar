@@ -4,7 +4,6 @@ The Apache-2.0 software licence does not grant rights to third-party intelligenc
 
 The files below are synthetic project examples and are dedicated under CC0-1.0:
 
-- test fixtures containing only `.example`, `.test`, documentation IP ranges and fictional names
 - documentation images containing only fictional identities and reserved `.example` domains
 
 Runtime observations and provider-derived metadata belong to the operator's deployment. Operators are responsible for provider terms, lawful collection, retention, privacy, redistribution and correction handling. The project does not grant permission to republish URLScan, VirusTotal, Certificate Transparency or any other third-party response.

@@ -9,8 +9,9 @@ screenshots
 secrets
 dist
 build
-htmlcov
 *.egg-info
+.package-smoke
+.pytest_cache
 *.sqlite*
 *.db
 *.key
@@ -19,8 +20,8 @@ htmlcov
 .env
 .env.*
 !.env.example
-.coverage
 __pycache__
-.pytest_cache
 .mypy_cache
 .ruff_cache
+.coverage
+htmlcov

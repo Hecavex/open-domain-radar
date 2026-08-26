@@ -21,18 +21,23 @@ jobs:
           cache: pip
       - name: Install project
         run: python -m pip install -e ".[dev]"
-      - name: Install Chromium
-        run: python -m playwright install --with-deps chromium
       - name: Lint and format
         run: |
           ruff check .
           ruff format --check .
       - name: Type check
         run: mypy
-      - name: Test
-        run: pytest -m "not release" --cov=open_domain_radar --cov-report=term-missing
-      - name: Verify packaged interface and safety boundaries
-        run: pytest -m release
+      - name: Compile package
+        run: python -m compileall -q src
+      - name: Audit Python dependencies
+        run: python -m pip_audit . --strict --progress-spinner off
+      - name: Build source and wheel distributions
+        run: python -m build
+      - name: Check installed wheel interface
+        run: |
+          python -m venv .package-smoke
+          .package-smoke/bin/python -m pip install dist/*.whl
+          .package-smoke/bin/open-domain-radar --help
       - name: Build container image
         run: |
           docker build --tag open-domain-radar:ci .

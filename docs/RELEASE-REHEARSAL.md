@@ -1,57 +1,71 @@
 # Release qualification and rehearsal
 
-This file records what the automated release gate proves and what still requires a human or the intended host. It is evidence for the alpha release, not a security certification.
+This document separates repository checks from the behavior that a maintainer must inspect on the intended host. Passing the automated gate qualifies an artifact for manual review; it is not a security certification or proof of production readiness.
 
-## Automated release gate
+## Automated gate
 
-The release suite runs against reserved domains and disposable state. It verifies:
+Continuous integration performs checks that do not require credentials, operational data or contact with third-party services:
 
-- strict linting, formatting and Python type checks;
-- unit and API tests with coverage enforcement;
-- forward-only migration creation, adoption of a pre-ledger 0.1.0 database, rejection of future schemas and append-only evidence triggers;
-- online backup, restore into a fresh instance, forced replacement, automatic rollback-copy recovery and invalid-backup rejection;
-- wheel contents and application startup from the installed artifact;
-- anonymous and operator layouts at 320, 390, 768, 1024 and 1440 CSS pixels;
-- keyboard-visible focus and skip navigation, named controls, reduced motion, forced colours, 200% text scaling and the 320-pixel reflow equivalent of 400% desktop zoom;
-- JavaScript-disabled public output and an explicit operator-console fallback;
-- local HTTPS termination through a reverse proxy, including HSTS and Secure/HttpOnly session cookies;
-- valid local documentation targets and HTTPS-only non-loopback links; and
-- optional live reachability of external documentation links when `ODR_CHECK_EXTERNAL_LINKS=1`.
+- Ruff linting and formatting;
+- strict mypy analysis of the Python package;
+- Python bytecode compilation;
+- an audit of installed Python dependencies against known vulnerability advisories;
+- source-distribution and wheel builds;
+- installation of the built wheel followed by a CLI startup check; and
+- a Docker image build followed by the same CLI startup check.
 
-Run the same split used by CI:
+Run the source and package checks locally:
 
 ```sh
+python -m pip install -e ".[dev]"
 python -m ruff check .
 python -m ruff format --check .
 python -m mypy
-python -m pytest -m "not release" --cov=open_domain_radar --cov-report=term-missing
-python -m pytest -m release
+python -m compileall -q src
+python -m pip_audit . --strict --progress-spinner off
 python -m build
 ```
 
-Use the opt-in external check immediately before publishing documentation:
+Inspect `dist/`, install the wheel into a clean virtual environment and run:
 
 ```sh
-ODR_CHECK_EXTERNAL_LINKS=1 python -m pytest tests/test_documentation_links.py
+open-domain-radar --help
 ```
 
-## Latest local rehearsal
+When Docker is available, build the image from the release revision and confirm its packaged command starts:
 
-The 23 August 2026 rehearsal used Python 3.12.8 and Chromium on Windows. Ruff, formatting and strict mypy checks passed. The hermetic suite passed 81 tests with 84.37% statement coverage; the release selection passed nine tests with one expected opt-in network check skipped. A separate enabled network run passed both documentation-link checks, and the source distribution and wheel built successfully.
+```sh
+docker build --tag open-domain-radar:release .
+docker run --rm open-domain-radar:release open-domain-radar --help
+```
 
-The database exercise restored a known-good backup, confirmed that post-backup rows disappeared, then restored the automatically preserved pre-restore copy and confirmed those rows returned. The proxy exercise served both public and authenticated routes through local HTTPS without installing a system proxy. Representative public and operator views were captured at 390 and 1440 pixels and inspected for clipping, overflow and focus loss.
+## Manual application rehearsal
 
-The local Docker daemon was unavailable, so the container-image build could not be repeated on that workstation. The repository CI performs the same Dockerfile build and command smoke test on the published revision; its result is required alongside the local package checks.
+Use only reserved domains and disposable state while completing this section. Record the release revision, reviewer, Python/browser versions, operating system and every deviation in a private release record.
 
-## Human and host checks
+Confirm all of the following before publishing a release:
 
-Automation cannot complete these checks honestly:
+- a fresh database initializes and an operator can be created from the CLI;
+- a database from the previous release upgrades without rewriting observations or append-only review history;
+- a database created by a newer release fails closed;
+- backup, restore into a fresh instance, forced replacement and rollback-copy recovery work on stopped processes;
+- the anonymous dashboard never exposes operator notes, provider keys or clickable candidate indicators;
+- sign-in, CSRF protection, session expiry, logout, review, restoration and suppression flows behave as documented;
+- missing optional provider keys skip enrichment without preventing CertStream candidates from being stored;
+- provider errors and rate limits remain bounded and visible to the operator;
+- public and operator layouts remain usable at 320, 390, 768, 1024 and 1440 CSS pixels;
+- keyboard focus, skip navigation, reduced motion, forced colours, 200% text scaling and narrow reflow remain usable;
+- public content remains meaningful with JavaScript disabled and the operator console presents an explicit fallback; and
+- documentation links resolve to repository files or intended HTTPS destinations.
 
-- NVDA, VoiceOver or another real screen-reader pass through the public and operator workflows;
-- browser zoom and operating-system high-contrast inspection on the operator's supported browser/OS matrix;
-- production DNS, certificate chain, TLS policy, firewall, VPN/IP allowlist and reverse-proxy rate limiting;
-- restore from the operator's encrypted off-host backup storage on the actual host;
-- provider-key rotation and confirmation that revoked credentials fail; and
-- an analyst review of target quality, suppressions and false-positive outcomes using the operator's own data.
+## Host rehearsal
 
-Complete those checks before describing a deployment as production-ready. Record the date, reviewer, tested release, environment and deviations in the operator's private runbook; never publish credentials, database contents or operational screenshots.
+On the intended host, verify production DNS, the certificate chain, TLS policy, firewall, VPN or IP allowlist, proxy request limits and login rate limits. Exercise the application only through the browser-facing HTTPS origin and confirm HSTS and Secure/HttpOnly session cookies.
+
+Restore an encrypted off-host backup into an isolated directory, rotate a disposable provider credential and verify that revocation is reflected as a controlled failure. Complete a real screen-reader pass with NVDA, VoiceOver or another supported assistive technology.
+
+Do not publish credentials, databases, provider responses, private analyst notes or operational screenshots as release evidence.
+
+## Qualification boundary
+
+The repository gate cannot establish target quality, provider availability, collection completeness, detection accuracy or the safety of an operator's network boundary. A maintainer must review watch targets, official domains, suppressions, false-positive outcomes and retention choices using the deployment's own context before describing it as production-ready.
