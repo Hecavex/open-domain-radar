@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+import asyncio
 import sqlite3
 import tempfile
 import unittest
 from contextlib import closing
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
+from unittest.mock import AsyncMock, patch
 
 from fastapi.testclient import TestClient
 from sqlalchemy import func, select
@@ -15,9 +17,11 @@ from sqlalchemy import func, select
 from open_domain_radar.api import create_app
 from open_domain_radar.config import Settings
 from open_domain_radar.db import restore_sqlite_backup, sqlite_backup
-from open_domain_radar.models import Admin, Candidate, Observation, Provider
+from open_domain_radar.models import Admin, Candidate, Observation, PivotJob, Provider
+from open_domain_radar.providers.base import ProviderOutcome
 from open_domain_radar.security import SecretBox, hash_password
 from open_domain_radar.services import ingest_observable, queue_configured_pivots, set_provider_secret
+from open_domain_radar.worker import RadarWorker
 
 
 class OperatorWorkflowTests(unittest.TestCase):
@@ -74,6 +78,17 @@ class OperatorWorkflowTests(unittest.TestCase):
             self.assertIsNotNone(candidate)
             candidate_id = candidate.id
         return candidate_id, headers
+
+    def queue_synthetic_pivot(self) -> int:
+        candidate_id, _headers = self.seed()
+        with self.database.session() as db:
+            candidate = db.get(Candidate, candidate_id)
+            provider = db.scalar(select(Provider).where(Provider.kind == "urlscan"))
+            provider.enabled = True
+            set_provider_secret(db, provider, "synthetic-worker-secret", SecretBox.load(self.settings))
+            jobs, _ = queue_configured_pivots(db, candidate, self.settings, trigger="synthetic-worker-test")
+            self.assertEqual(len(jobs), 1)
+            return jobs[0].id
 
     def test_initialization_is_idempotent_and_public_surface_is_read_only(self) -> None:
         self.database.initialize()
@@ -175,6 +190,85 @@ class OperatorWorkflowTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200, response.text)
         self.assertEqual(self.client.get("/api/public/v1/signals").json()["total"], 1)
         self.assertEqual(len(self.client.get(route).json()["review_events"]), 3)
+
+    def test_worker_executes_a_queued_job_once_without_repeating_provider_work(self) -> None:
+        job_id = self.queue_synthetic_pivot()
+        worker = RadarWorker(self.database, self.settings)
+        outcome = ProviderOutcome(
+            provider="urlscan",
+            status="success",
+            items=[{"observable": "fixturebrand-account.invalid"}],
+        )
+        # Exercise the real claim, provider boundary and storage path. Only the
+        # external provider call is replaced, so no network request is possible.
+        with patch.object(worker, "_pivot", new_callable=AsyncMock, return_value=outcome) as pivot:
+            first = asyncio.run(worker.run_once())
+            self.assertEqual(first, {"processed": 1, "success": 1, "skipped": 0, "failed": 0, "discovered": 1})
+            second = asyncio.run(worker.run_once())
+            self.assertEqual(second, {"processed": 0, "success": 0, "skipped": 0, "failed": 0, "discovered": 0})
+            pivot.assert_awaited_once()
+            self.assertEqual(pivot.await_args.args[0:2], ("fixturebrand-login.invalid", "urlscan"))
+        with self.database.session() as db:
+            job = db.get(PivotJob, job_id)
+            self.assertEqual((job.state, job.attempts), ("success", 1))
+            self.assertIsNotNone(job.started_at)
+            self.assertIsNotNone(job.finished_at)
+            self.assertEqual(db.scalar(select(func.count()).select_from(Candidate)), 2)
+            self.assertEqual(db.scalar(select(func.count()).select_from(PivotJob)), 1)
+
+    def test_worker_failure_is_redacted_and_not_automatically_retried(self) -> None:
+        job_id = self.queue_synthetic_pivot()
+        worker = RadarWorker(self.database, self.settings)
+        with patch.object(
+            worker, "_pivot", new_callable=AsyncMock, side_effect=ValueError("synthetic-sensitive-provider-detail")
+        ) as pivot:
+            self.assertEqual(asyncio.run(worker.run_once())["failed"], 1)
+            self.assertEqual(asyncio.run(worker.run_once())["processed"], 0)
+            pivot.assert_awaited_once()
+        with self.database.session() as db:
+            job = db.get(PivotJob, job_id)
+            provider = db.scalar(select(Provider).where(Provider.kind == "urlscan"))
+            self.assertEqual((job.state, job.attempts, job.last_error), ("failed", 1, "provider_response_invalid"))
+            self.assertEqual(provider.last_message, "provider_response_invalid")
+            self.assertIsNotNone(job.finished_at)
+
+    def test_worker_exclusive_claim_and_interrupted_job_do_not_repeat_provider_work(self) -> None:
+        job_id = self.queue_synthetic_pivot()
+        first_worker = RadarWorker(self.database, self.settings)
+        second_worker = RadarWorker(self.database, self.settings)
+        # Reproduce two workers reading the same due ID before either claims it.
+        # The actual conditional database update must allow only the first claim.
+        self.assertEqual(first_worker._due_job_ids(10), [job_id])
+        self.assertEqual(second_worker._due_job_ids(10), [job_id])
+        self.assertIsNotNone(first_worker._claim_job(job_id))
+        self.assertIsNone(second_worker._claim_job(job_id))
+        with self.database.session() as db:
+            job = db.get(PivotJob, job_id)
+            self.assertEqual((job.state, job.attempts), ("running", 1))
+            job.started_at = datetime.now(UTC) - timedelta(minutes=16)
+        with patch.object(second_worker, "_pivot", new_callable=AsyncMock) as pivot:
+            self.assertEqual(asyncio.run(second_worker.run_once())["processed"], 0)
+            self.assertEqual(asyncio.run(second_worker.run_once())["processed"], 0)
+            pivot.assert_not_awaited()
+        with self.database.session() as db:
+            job = db.get(PivotJob, job_id)
+            self.assertEqual((job.state, job.attempts, job.last_error), ("failed", 1, "worker_interrupted"))
+            self.assertIsNotNone(job.finished_at)
+
+    def test_worker_skips_a_provider_disabled_after_queueing(self) -> None:
+        job_id = self.queue_synthetic_pivot()
+        with self.database.session() as db:
+            provider = db.scalar(select(Provider).where(Provider.kind == "urlscan"))
+            provider.enabled = False
+        worker = RadarWorker(self.database, self.settings)
+        with patch.object(worker, "_pivot", new_callable=AsyncMock) as pivot:
+            self.assertEqual(asyncio.run(worker.run_once())["skipped"], 1)
+            self.assertEqual(asyncio.run(worker.run_once())["processed"], 0)
+            pivot.assert_not_awaited()
+        with self.database.session() as db:
+            job = db.get(PivotJob, job_id)
+            self.assertEqual((job.state, job.attempts), ("skipped", 1))
+            self.assertEqual(job.last_error, "candidate_or_provider_unavailable")
 
     def test_online_backup_restores_and_rejects_overwrite(self) -> None:
         self.seed()
