@@ -3,6 +3,9 @@ name: CI
 on:
   push:
   pull_request:
+  workflow_dispatch:
+  schedule:
+    - cron: '43 7 * * 1'
 
 permissions:
   contents: read
@@ -10,7 +13,7 @@ permissions:
 jobs:
   verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     steps:
       - name: Check out repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -53,3 +56,7 @@ jobs:
           docker build --tag open-domain-radar:ci .
           docker run --rm open-domain-radar:ci open-domain-radar --help
           docker run --rm --network none -v "$PWD/tests:/tests:ro" open-domain-radar:ci python -m unittest discover -s /tests -v
+      - name: Check runtime image for fixable high and critical advisories
+        run: |
+          docker save --output "$RUNNER_TEMP/odr-image.tar" open-domain-radar:ci
+          docker run --rm --user "$(id -u):$(id -g)" -v "$RUNNER_TEMP:/audit" -e TRIVY_CACHE_DIR=/audit/trivy-cache aquasec/trivy:0.74.0@sha256:62b1e65e8869bc4b4c6aa4fa2b21595256c7c2f6018a9d9ad61caf87187c1969 image --input /audit/odr-image.tar --scanners vuln --ignore-unfixed --severity HIGH,CRITICAL --exit-code 1 --timeout 10m

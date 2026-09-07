@@ -69,3 +69,9 @@ Prefer a secret manager for `ODR_MASTER_KEY`, `URLSCAN_API_KEY` and `VIRUSTOTAL_
 The supported initial shape is one web process and one worker sharing one SQLite volume. Do not start multiple web or worker processes against the same database. PostgreSQL, distributed locks and multi-worker scheduling require a future tested release.
 
 GitHub Pages can host a future sanitized static export, but cannot host this database, admin console, worker or secret store.
+
+## Runtime image maintenance
+
+The Docker build uses Python 3.12.14 on Debian Bookworm slim, pinned to an immutable image digest in the Dockerfile. Weekly Docker dependency proposals and the scheduled CI run keep image maintenance separate from application dependency locks.
+
+CI exports the built runtime image and checks it with a digest-pinned Trivy scanner. Fixable HIGH and CRITICAL findings fail the verification job. This check does not claim that an image has no vulnerabilities. Unfixed findings, deployment configuration and newly published advisories still require review. A failed scheduled check is a maintenance signal, not an automatic production upgrade. Review the image proposal, pass the same tests and rebuild deliberately.
