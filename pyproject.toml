@@ -39,6 +39,8 @@ Documentation = "https://github.com/Hecavex/open-domain-radar/tree/main/docs"
 
 [project.optional-dependencies]
 dev = [
+  "setuptools>=77,<86",
+  "wheel>=0.45,<1",
   "build>=1.2,<2",
   "mypy>=1.15,<3",
   "pip-audit>=2.9,<4",

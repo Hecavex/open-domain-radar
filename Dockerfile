@@ -1,17 +1,30 @@
-FROM python:3.12.8-slim-bookworm
+FROM python:3.12.8-slim-bookworm AS builder
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
     ODR_DATA_DIR=/data
 
-RUN addgroup --system radar && adduser --system --ingroup radar --home /app radar
-
 WORKDIR /app
 COPY pyproject.toml README.md LICENSE NOTICE THIRD-PARTY-NOTICES.md ./
 COPY src ./src
-RUN python -m pip install --no-cache-dir .
+COPY requirements ./requirements
+RUN python -m pip install --no-cache-dir --require-hashes -r requirements/dev-py312.lock && \
+    python -m pip wheel --no-deps --no-build-isolation --wheel-dir /tmp/wheels . && \
+    python -m venv /opt/radar && \
+    /opt/radar/bin/pip install --no-cache-dir --require-hashes -r requirements/runtime-py312.lock && \
+    /opt/radar/bin/pip install --no-deps /tmp/wheels/*.whl
+ENV PATH="/opt/radar/bin:$PATH"
 
+FROM python:3.12.8-slim-bookworm
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    ODR_DATA_DIR=/data \
+    PATH="/opt/radar/bin:$PATH"
+COPY --from=builder /opt/radar /opt/radar
+RUN addgroup --system radar && adduser --system --ingroup radar --home /app radar
+WORKDIR /app
 RUN mkdir /data && chown radar:radar /data
 USER radar
 

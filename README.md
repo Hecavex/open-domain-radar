@@ -139,13 +139,14 @@ The worker processes the queue. Disabled providers and providers without usable 
 
 ## Native Python installation
 
-Requirements: Python 3.12 or later.
+Requirements: Python 3.12 or later. The reviewed dependency locks and recurring release checks target Python 3.12. Use that interpreter for a qualified installation. See [dependency lock maintenance](requirements/README.md).
 
 ### Windows PowerShell
 
 ```powershell
 python -m venv .venv
-.\.venv\Scripts\python -m pip install .
+.\.venv\Scripts\python -m pip install --require-hashes -r requirements/runtime-py312.lock
+.\.venv\Scripts\python -m pip install --no-deps .
 .\.venv\Scripts\open-domain-radar init
 .\.venv\Scripts\open-domain-radar create-admin --username operator
 .\.venv\Scripts\open-domain-radar serve
@@ -161,7 +162,8 @@ Start the worker in a second terminal:
 
 ```sh
 python3 -m venv .venv
-.venv/bin/python -m pip install .
+.venv/bin/python -m pip install --require-hashes -r requirements/runtime-py312.lock
+.venv/bin/python -m pip install --no-deps .
 .venv/bin/open-domain-radar init
 .venv/bin/open-domain-radar create-admin --username operator
 .venv/bin/open-domain-radar serve
@@ -218,15 +220,19 @@ The schema is tracked in a forward-only migration ledger. A database newer than 
 ## Development
 
 ```sh
-python -m pip install -e ".[dev]"
+python scripts/lock_dependencies.py --check
+python -m pip install --require-hashes -r requirements/dev-py312.lock
+python -m pip install --no-deps --no-build-isolation -e .
+python -m unittest discover -s tests -v
 python -m ruff check .
 python -m ruff format --check .
 python -m mypy
-python -m pip_audit . --strict --progress-spinner off
-python -m build
+python -m pip_audit -r requirements/runtime-py312.lock --no-deps --disable-pip --strict --progress-spinner off
+python -m pip_audit -r requirements/dev-py312.lock --no-deps --disable-pip --strict --progress-spinner off
+python -m build --no-isolation
 ```
 
-The automated gate checks source quality, strict typing, known dependency vulnerabilities, bytecode compilation, source/wheel packaging and container startup. Responsive behavior, keyboard and forced-colour accessibility, backup restoration, authentication, provider integrations and the intended TLS boundary remain explicit human release checks described in [Release qualification and rehearsal](docs/RELEASE-REHEARSAL.md).
+The automated gate checks source quality, strict typing, the reviewed dependency locks, known dependency vulnerabilities, source/wheel packaging and synthetic operator workflows in the source checkout, installed wheel and network-isolated container. Runtime tests cover initialization, authentication/origin/CSRF, public/private separation, provider-secret redaction, repeated ingestion/pivot scheduling, review/suppression and SQLite backup restore. They do not contact providers or qualify a real deployment. Responsive behavior, assistive technology, off-host recovery, real provider access and the intended TLS boundary remain explicit human release checks described in [Release qualification and rehearsal](docs/RELEASE-REHEARSAL.md).
 
 Do not add real suspicious infrastructure, provider credentials or analyst data to documentation, screenshots or examples.
 

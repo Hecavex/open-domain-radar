@@ -20,7 +20,13 @@ jobs:
           python-version: "3.12"
           cache: pip
       - name: Install project
-        run: python -m pip install -e ".[dev]"
+        run: |
+          python scripts/lock_dependencies.py --check
+          python -m pip install --require-hashes -r requirements/dev-py312.lock
+          python -m pip install --no-deps --no-build-isolation -e .
+          python -m pip check
+      - name: Synthetic operator runtime tests
+        run: python -m unittest discover -s tests -v
       - name: Lint and format
         run: |
           ruff check .
@@ -30,15 +36,20 @@ jobs:
       - name: Compile package
         run: python -m compileall -q src
       - name: Audit Python dependencies
-        run: python -m pip_audit . --strict --progress-spinner off
+        run: |
+          python -m pip_audit -r requirements/runtime-py312.lock --no-deps --disable-pip --strict --progress-spinner off
+          python -m pip_audit -r requirements/dev-py312.lock --no-deps --disable-pip --strict --progress-spinner off
       - name: Build source and wheel distributions
-        run: python -m build
+        run: python -m build --no-isolation
       - name: Check installed wheel interface
         run: |
           python -m venv .package-smoke
-          .package-smoke/bin/python -m pip install dist/*.whl
+          .package-smoke/bin/python -m pip install --require-hashes -r requirements/runtime-py312.lock
+          .package-smoke/bin/python -m pip install --no-deps dist/*.whl
           .package-smoke/bin/open-domain-radar --help
+          .package-smoke/bin/python -m unittest discover -s tests -v
       - name: Build container image
         run: |
           docker build --tag open-domain-radar:ci .
           docker run --rm open-domain-radar:ci open-domain-radar --help
+          docker run --rm --network none -v "$PWD/tests:/tests:ro" open-domain-radar:ci python -m unittest discover -s /tests -v
