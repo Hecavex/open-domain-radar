@@ -6,6 +6,8 @@ Regenerate intentionally with `python -m pip install uv==0.12.5` followed by `py
 
 `python scripts/lock_dependencies.py --check` checks normalized source and lock hashes against the reviewed manifest. A dependency-source edit without regenerating its locks fails CI. The manifest is a drift guard, not a signature or an independent security review.
 
+The October 2026 maintenance refresh updates the development-only `urllib3` dependency from 2.7.0 to 2.8.0 for PYSEC-2026-4175, PYSEC-2026-4176 and PYSEC-2026-4177. The runtime lock is unchanged. Runtime-image upgrades to another Python minor version require a matching reviewed lock resolution and successful wheel/container checks; changing only the Docker base image does not establish that compatibility.
+
 For a local Python 3.12 virtual environment:
 
 ```sh
