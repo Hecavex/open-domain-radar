@@ -4,6 +4,6 @@
   "files": {
     "pyproject.toml": "9473b03af7c40320d08e540e5a7ba7423233368f61a450e432e88f99288d632b",
     "requirements/runtime-py312.lock": "b00e856eba89215dc53b0c84dbe9eb896b0e821879d1d53857e63782f9e44437",
-    "requirements/dev-py312.lock": "1d6d8c5573346f8a3dd804e55be76036b144a88d185777fd7c358fa552fdb40b"
+    "requirements/dev-py312.lock": "d0a0650d9ba91e4141883b16b43982d8afb98624871f254212c3b8fb58595bf1"
   }
 }
